@@ -3,29 +3,35 @@
 const EDGE_URL = import.meta.env.VITE_EDGE_URL
 
 /**
- * Generic edge fetch helper with auth header
+ * Generic edge fetch — graceful fallback on CORS / network failure
  */
 async function edgeFetch(path, options = {}) {
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-  const res = await fetch(`${EDGE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': supabaseKey,
-      'Authorization': `Bearer ${supabaseKey}`,
-      ...(options.headers || {}),
-    },
-  })
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(err || `Edge error: ${res.status}`)
+  try {
+    const res = await fetch(`${EDGE_URL}${path}`, {
+      ...options,
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        ...(options.headers || {}),
+      },
+    })
+    if (!res.ok) {
+      const err = await res.text().catch(() => `HTTP ${res.status}`)
+      throw new Error(err)
+    }
+    return res.json()
+  } catch (e) {
+    // CORS or network error — log but don't crash the app
+    console.warn(`[EdgeClient] ${path} failed: ${e.message}`)
+    return null
   }
-  return res.json()
 }
 
 /**
- * Send WhatsApp notification via Edge
- * POST /functions/v1/send-wa
+ * Send WA notification via Edge
  */
 export async function edgeSendWA(phone, message, restaurantId) {
   return edgeFetch('/functions/v1/send-wa', {
@@ -36,7 +42,6 @@ export async function edgeSendWA(phone, message, restaurantId) {
 
 /**
  * Send Gotify push notification via Edge
- * POST /functions/v1/send-notif
  */
 export async function edgeSendNotif(title, message, priority = 5, restaurantId) {
   return edgeFetch('/functions/v1/send-notif', {
@@ -46,8 +51,7 @@ export async function edgeSendNotif(title, message, priority = 5, restaurantId) 
 }
 
 /**
- * Trigger task assignment notification via Edge (WA + Gotify)
- * POST /functions/v1/notify-task
+ * Trigger task assignment notification via Edge
  */
 export async function edgeNotifyTask({ taskTitle, priority, assigneePhone, assigneeName, restaurantId }) {
   return edgeFetch('/functions/v1/notify-task', {
@@ -63,14 +67,9 @@ export async function edgeNotifyTask({ taskTitle, priority, assigneePhone, assig
 }
 
 /**
- * Health check for Edge service
- * GET /functions/v1/health
+ * Health check
  */
 export async function edgeHealthCheck() {
-  try {
-    const data = await edgeFetch('/functions/v1/health')
-    return { ok: true, data }
-  } catch (e) {
-    return { ok: false, error: e.message }
-  }
+  const data = await edgeFetch('/functions/v1/health')
+  return data ? { ok: true, data } : { ok: false, error: 'Unreachable' }
 }

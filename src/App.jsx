@@ -4,67 +4,66 @@ import { connectGotify, disconnectGotify } from './lib/gotifyClient'
 import './App.css'
 import './index.css'
 
-import LoginPage from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
-import TasksPage from './pages/TasksPage'
-import TeamPage from './pages/TeamPage'
-import ChatPage from './pages/ChatPage'
-import WhatsAppPage from './pages/WhatsAppPage'
-import Sidebar from './components/Sidebar'
-import NotifToast from './components/NotifToast'
+import LoginPage      from './pages/LoginPage'
+import DashboardPage  from './pages/DashboardPage'
+import TasksPage      from './pages/TasksPage'
+import TeamPage       from './pages/TeamPage'
+import ChatPage       from './pages/ChatPage'
+import WhatsAppPage   from './pages/WhatsAppPage'
+import WAInboxPage    from './pages/WAInboxPage'
+import Sidebar        from './components/Sidebar'
+import NotifToast     from './components/NotifToast'
 
 export default function App() {
-  const [session, setSession] = useState(null)
-  const [userProfile, setUserProfile] = useState(null)
-  const [page, setPage] = useState('dashboard')
-  const [loading, setLoading] = useState(true)
-  const [toasts, setToasts] = useState([])
-  const [taskBadge, setTaskBadge] = useState(0)
-  const [chatBadge, setChatBadge] = useState(0)
+  const [session, setSession]           = useState(null)
+  const [userProfile, setUserProfile]   = useState(null)
+  const [page, setPage]                 = useState('dashboard')
+  const [loading, setLoading]           = useState(true)
+  const [toasts, setToasts]             = useState([])
+  const [taskBadge, setTaskBadge]       = useState(0)
+  const [chatBadge, setChatBadge]       = useState(0)
+  const [waBadge, setWaBadge]           = useState(0)
+  const [sidebarOpen, setSidebarOpen]   = useState(false)
 
-  // Add a toast notification
+  // ── Toast helpers ────────────────────────────────────────────
   const addToast = useCallback((toast) => {
     const id = Date.now()
     setToasts(prev => [...prev, { id, ...toast }])
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000)
   }, [])
 
-  // Remove a toast
   const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
 
-  // Load user profile from public.users
+  // ── Load user profile ────────────────────────────────────────
   const loadUserProfile = async (authUser) => {
     const { data } = await supabase
       .from('users')
-      .select('id, username, role, restaurant_id')
+      .select('id, username, role, phone, restaurant_id')
       .eq('username', authUser.email)
       .maybeSingle()
     if (data) setUserProfile(data)
   }
 
-  // Auth state listener
+  // ── Auth ─────────────────────────────────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       if (session) loadUserProfile(session.user)
       setLoading(false)
     })
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       if (session) loadUserProfile(session.user)
       else setUserProfile(null)
     })
-
     return () => subscription.unsubscribe()
   }, [])
 
-  // Connect Gotify for real-time notifications
+  // ── Gotify real-time notifications ───────────────────────────
   useEffect(() => {
     if (!session) return
-
     const handleGotifyMessage = (data) => {
       addToast({
         type: data.title?.toLowerCase().includes('wa') ? 'wa' : 'task',
@@ -78,11 +77,11 @@ export default function App() {
         setChatBadge(b => b + 1)
       }
     }
-
     connectGotify(handleGotifyMessage)
     return () => disconnectGotify()
   }, [session, addToast])
 
+  // ── Logout ───────────────────────────────────────────────────
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setSession(null)
@@ -92,10 +91,13 @@ export default function App() {
 
   const handleNavChange = (p) => {
     setPage(p)
-    if (p === 'tasks') setTaskBadge(0)
-    if (p === 'chat') setChatBadge(0)
+    setSidebarOpen(false) // close sidebar on mobile after nav
+    if (p === 'tasks')    setTaskBadge(0)
+    if (p === 'chat')     setChatBadge(0)
+    if (p === 'wa-inbox') setWaBadge(0)
   }
 
+  // ── Loading screen ───────────────────────────────────────────
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
@@ -113,17 +115,36 @@ export default function App() {
 
   const renderPage = () => {
     switch (page) {
-      case 'dashboard': return <DashboardPage session={session} userProfile={userProfile} onNav={handleNavChange} addToast={addToast} />
-      case 'tasks':     return <TasksPage session={session} userProfile={userProfile} addToast={addToast} />
-      case 'team':      return <TeamPage session={session} userProfile={userProfile} addToast={addToast} />
-      case 'chat':      return <ChatPage session={session} userProfile={userProfile} addToast={addToast} />
-      case 'whatsapp':  return <WhatsAppPage session={session} userProfile={userProfile} addToast={addToast} />
-      default:          return <DashboardPage session={session} userProfile={userProfile} onNav={handleNavChange} addToast={addToast} />
+      case 'dashboard': return <DashboardPage  session={session} userProfile={userProfile} onNav={handleNavChange} addToast={addToast} />
+      case 'tasks':     return <TasksPage      session={session} userProfile={userProfile} addToast={addToast} />
+      case 'team':      return <TeamPage       session={session} userProfile={userProfile} addToast={addToast} />
+      case 'chat':      return <ChatPage       session={session} userProfile={userProfile} addToast={addToast} />
+      case 'wa-inbox':  return <WAInboxPage    session={session} userProfile={userProfile} addToast={addToast} onWaBadgeChange={setWaBadge} />
+      case 'whatsapp':  return <WhatsAppPage   session={session} userProfile={userProfile} addToast={addToast} />
+      default:          return <DashboardPage  session={session} userProfile={userProfile} onNav={handleNavChange} addToast={addToast} />
     }
   }
 
   return (
     <div className="app-layout">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Mobile top bar */}
+      <div className="mobile-topbar">
+        <button className="mobile-menu-btn" onClick={() => setSidebarOpen(o => !o)}>
+          <span className="hamburger-line" />
+          <span className="hamburger-line" />
+          <span className="hamburger-line" />
+        </button>
+        <div className="mobile-logo">sip<span>OS</span> Team</div>
+        {(taskBadge + chatBadge + waBadge) > 0 && (
+          <div className="mobile-badge-dot" />
+        )}
+      </div>
+
       <Sidebar
         page={page}
         onNav={handleNavChange}
@@ -132,10 +153,43 @@ export default function App() {
         userProfile={userProfile}
         taskBadge={taskBadge}
         chatBadge={chatBadge}
+        waBadge={waBadge}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
+
       <div className="main-content">
         {renderPage()}
       </div>
+
+      {/* Mobile bottom tab bar */}
+      <nav className="mobile-bottom-nav">
+        {[
+          { id: 'dashboard', icon: '🏠', label: 'Home' },
+          { id: 'tasks',     icon: '✅', label: 'Tugas',  badge: taskBadge },
+          { id: 'wa-inbox',  icon: '💚', label: 'WA',     badge: waBadge, badgeColor: '#25d366' },
+          { id: 'chat',      icon: '💬', label: 'Chat',   badge: chatBadge },
+          { id: 'team',      icon: '👥', label: 'Tim' },
+        ].map(item => (
+          <button
+            key={item.id}
+            className={`mobile-tab-btn ${page === item.id ? 'active' : ''}`}
+            onClick={() => handleNavChange(item.id)}
+          >
+            <span className="mobile-tab-icon">
+              {item.icon}
+              {item.badge > 0 && (
+                <span
+                  className="mobile-tab-badge"
+                  style={item.badgeColor ? { background: item.badgeColor } : {}}
+                >{item.badge}</span>
+              )}
+            </span>
+            <span className="mobile-tab-label">{item.label}</span>
+          </button>
+        ))}
+      </nav>
+
       <NotifToast toasts={toasts} onRemove={removeToast} />
     </div>
   )
