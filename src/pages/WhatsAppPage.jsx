@@ -265,7 +265,6 @@ export default function WhatsAppPage({ session, userProfile, addToast }) {
           </div>
         </div>
       </div>
-      </div>
 
       {/* QR MODAL */}
       {showQrModal && qrData && (

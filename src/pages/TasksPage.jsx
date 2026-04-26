@@ -144,9 +144,6 @@ export default function TasksPage({ session, userProfile, addToast }) {
     fetchData()
   }
 
-    }
-  }
-
   const handleQuickStatus = async (taskId, newStatus) => {
     const { error } = await supabase.from('team_tasks').update({ status: newStatus }).eq('id', taskId)
     if (error) {
