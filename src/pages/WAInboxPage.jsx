@@ -158,10 +158,15 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
       const uniqueUpserts = Array.from(new Map(toUpsert.map(item => [item.id, item])).values())
 
       if (uniqueUpserts.length > 0) {
-        const { error } = await supabase
-          .from('wa_contacts')
-          .upsert(uniqueUpserts, { onConflict: 'id', ignoreDuplicates: false })
-        if (error) throw error
+        // Chunk upserts into batches of 500 to avoid PostgREST/HTTP limits
+        const chunkSize = 500
+        for (let i = 0; i < uniqueUpserts.length; i += chunkSize) {
+          const chunk = uniqueUpserts.slice(i, i + chunkSize)
+          const { error } = await supabase
+            .from('wa_contacts')
+            .upsert(chunk, { onConflict: 'id', ignoreDuplicates: false })
+          if (error) throw error
+        }
       }
 
       await loadChats()
