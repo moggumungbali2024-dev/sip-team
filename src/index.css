@@ -522,6 +522,7 @@ textarea.input { resize: vertical; min-height: 80px; }
     padding: 0; 
   }
   .main-content {
+    margin-left: 0;
     border-radius: 0;
     flex: 1;
     height: auto;

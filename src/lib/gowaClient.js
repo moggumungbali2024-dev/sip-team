@@ -108,5 +108,5 @@ export function isGroup(chatId) {
 
 export function displayPhone(chatId) {
   if (!chatId) return ''
-  return chatId.replace('@s.whatsapp.net', '').replace('@g.us', '')
+  return chatId.replace('@s.whatsapp.net', '').replace('@g.us', '').replace('@lid', '')
 }
