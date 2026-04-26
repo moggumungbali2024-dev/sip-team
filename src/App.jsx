@@ -139,8 +139,10 @@ export default function App() {
           <span className="hamburger-line" />
           <span className="hamburger-line" />
         </button>
-        <img src="/favicon.svg" alt="logo" className="logo-icon" style={{ width: 28, height: 28, borderRadius: 6, marginRight: 8 }} />
-        <div className="mobile-logo">sip<span>OS</span> Team</div>
+        <div style={{width: '28px', height: '28px', borderRadius: '6px', background: 'linear-gradient(135deg, rgb(249, 115, 22), rgb(234, 88, 12))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'rgba(249, 115, 22, 0.4) 0px 2px 12px', color: '#fff', marginRight: '8px', flexShrink: 0}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+        </div>
+        <div className="mobile-logo" style={{ whiteSpace: 'nowrap' }}>sip<span>OS</span> Team</div>
         {(taskBadge + chatBadge + waBadge) > 0 && (
           <div className="mobile-badge-dot" />
         )}

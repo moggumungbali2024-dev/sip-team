@@ -122,10 +122,11 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
       const toUpsert = []
 
       // Contacts
-      const contacts = contactsRes?.results || contactsRes?.data || []
+      const contacts = contactsRes?.results?.data || contactsRes?.results || contactsRes?.data || []
       for (const c of contacts) {
-        if (!c.phone && !c.id) continue
-        const chatId = c.phone?.includes('@') ? c.phone : `${c.phone?.replace(/\D/g,'')}@s.whatsapp.net`
+        if (!c.phone && !c.id && !c.jid) continue
+        const rawPhone = c.phone || c.id || c.jid || ''
+        const chatId = rawPhone.includes('@') ? rawPhone : `${rawPhone.replace(/\D/g,'')}@s.whatsapp.net`
         toUpsert.push({
           id: chatId,
           name: c.name || c.push_name || displayPhone(chatId),
@@ -137,7 +138,7 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
       }
 
       // Groups
-      const groups = groupsRes?.results || groupsRes?.data || []
+      const groups = groupsRes?.results?.data || groupsRes?.results || groupsRes?.data || []
       for (const g of groups) {
         const chatId = g.id?.includes('@') ? g.id : `${g.id}@g.us`
         toUpsert.push({

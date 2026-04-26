@@ -30,8 +30,10 @@ export default function Sidebar({ page, onNav, onLogout, session, userProfile, t
       {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header sidebar-logo">
-          <img src="/favicon.svg" alt="logo" className="logo-icon" style={{ width: 32, height: 32, borderRadius: 8 }} />
-          <div className="logo-text" style={{ fontWeight: 800, fontSize: 16 }}>sip<span>OS</span> Team</div>
+          <div style={{width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, rgb(249, 115, 22), rgb(234, 88, 12))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'rgba(249, 115, 22, 0.4) 0px 2px 12px', color: '#fff', flexShrink: 0}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+          </div>
+          <div className="logo-text" style={{ fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap' }}>sip<span>OS</span> Team</div>
         </div>
 
       {/* User Info */}
