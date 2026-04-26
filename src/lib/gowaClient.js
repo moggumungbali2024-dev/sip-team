@@ -5,20 +5,25 @@ const GOWA_PASS = import.meta.env.VITE_GOWA_PASS
 
 const basicAuthToken = btoa(`${GOWA_USER}:${GOWA_PASS}`)
 
-// Build headers for GoWa v8 (device_id scoping)
-function gowaHeaders(deviceId) {
-  const h = {
+// Build headers for GoWa v8
+function gowaHeaders() {
+  return {
     'Content-Type': 'application/json',
   }
-  if (deviceId) h['X-Device-Id'] = deviceId
-  return h
 }
 
 async function gowaFetch(path, options = {}, deviceId = null) {
   try {
-    const res = await fetch(`${GOWA_URL}${path}`, {
+    // Append phone parameter if deviceId is provided (avoids X-Device-Id CORS issue)
+    let urlPath = path
+    if (deviceId) {
+      const sep = path.includes('?') ? '&' : '?'
+      urlPath += `${sep}phone=${encodeURIComponent(deviceId)}`
+    }
+    
+    const res = await fetch(`${GOWA_URL}${urlPath}`, {
       ...options,
-      headers: gowaHeaders(deviceId),
+      headers: gowaHeaders(),
     })
     if (!res.ok) throw new Error(`GoWa ${res.status}`)
     return await res.json()
@@ -53,9 +58,12 @@ export async function logoutGoWa(deviceId) {
 
 export async function sendWhatsAppMessage(phone, message, deviceId = null) {
   try {
-    const res = await fetch(`${GOWA_URL}/send/message`, {
+    let urlPath = '/send/message'
+    if (deviceId) urlPath += `?phone_sender=${encodeURIComponent(deviceId)}`
+    
+    const res = await fetch(`${GOWA_URL}${urlPath}`, {
       method: 'POST',
-      headers: gowaHeaders(deviceId),
+      headers: gowaHeaders(),
       body: JSON.stringify({ phone, message }),
     })
     const data = await res.json()
