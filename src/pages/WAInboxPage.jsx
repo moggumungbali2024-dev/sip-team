@@ -129,7 +129,7 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
         const chatId = rawPhone.includes('@') ? rawPhone : `${rawPhone.replace(/\D/g,'')}@s.whatsapp.net`
         toUpsert.push({
           id: chatId,
-          name: c.name || c.push_name || displayPhone(chatId),
+          name: displayPhone(c.name || c.push_name) || displayPhone(chatId),
           phone: displayPhone(chatId),
           is_group: false,
           device_id: deviceId,
@@ -338,7 +338,7 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
                   <div style={{ flex: 1, overflow: 'hidden' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {chat.name || chat.phone || chat.id}
+                        {displayPhone(chat.name) || displayPhone(chat.phone) || displayPhone(chat.id)}
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, marginLeft: 8 }}>
                         {formatTime(chat.last_msg_at)}
@@ -388,7 +388,7 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
                   </div>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>
-                      {activeChat.name || activeChat.phone}
+                      {displayPhone(activeChat.name) || displayPhone(activeChat.phone)}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                       {activeChat.is_group
