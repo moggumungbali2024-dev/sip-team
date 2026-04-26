@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabaseClient'
 import { getGoWaDevices, getGoWaQR, logoutGoWa, sendWhatsAppMessage } from '../lib/gowaClient'
 
 export default function WhatsAppPage({ session, userProfile, addToast }) {
@@ -34,9 +35,15 @@ export default function WhatsAppPage({ session, userProfile, addToast }) {
       return
     }
     setLoading(true)
-    const data = await getGoWaDevices(savedPhone)
-    setDevices(data)
-    setLoading(false)
+    try {
+      const data = await getGoWaDevices(savedPhone)
+      setDevices(data)
+    } catch (e) {
+      console.error('Fetch devices failed:', e)
+      setDevices(null)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleGetQR = async () => {
@@ -45,20 +52,23 @@ export default function WhatsAppPage({ session, userProfile, addToast }) {
       addToast({ type: 'error', title: 'Isi nomor HP', body: 'Masukkan nomor HP yang akan dipasangkan.' }); 
       return 
     }
-    setQrLoading(true)
-    setQrData(null)
-    
-    // Save to localStorage so WA Inbox page can find it
-    localStorage.setItem('gowa_phone', cleanPhone)
-    
-    const data = await getGoWaQR(cleanPhone)
-    setQrData(data)
-    setQrLoading(false)
-
-    if (data?.results?.qr_link || data?.results?.qr) {
-      const duration = data?.results?.qr_duration || 30
-      setTimeLeft(duration)
-      setShowQrModal(true)
+    try {
+      localStorage.setItem('gowa_phone', cleanPhone)
+      const data = await getGoWaQR(cleanPhone)
+      setQrData(data)
+      
+      if (data?.results?.qr_link || data?.results?.qr) {
+        const duration = data?.results?.qr_duration || 30
+        setTimeLeft(duration)
+        setShowQrModal(true)
+      } else {
+        addToast({ type: 'success', title: 'Siap', body: 'Perangkat sudah terhubung.' })
+        fetchDevices()
+      }
+    } catch (e) {
+      addToast({ type: 'error', title: 'Gagal', body: e.message })
+    } finally {
+      setQrLoading(false)
     }
   }
 
@@ -75,15 +85,45 @@ export default function WhatsAppPage({ session, userProfile, addToast }) {
 
   const handleSendTest = async () => {
     if (!testTarget || !testMsg) return
-    setSendingTest(true)
-    const result = await sendWhatsAppMessage(testTarget, testMsg)
-    if (result.ok) {
-      addToast({ type: 'wa', title: '✅ Pesan Terkirim', body: `Ke ${testTarget}` })
-      setTestMsg('')
-    } else {
-      addToast({ type: 'error', title: '❌ Gagal', body: result.error })
+    const currentDevice = localStorage.getItem('gowa_phone')
+    if (!currentDevice) {
+      addToast({ type: 'error', title: 'Error', body: 'Set nomor WA terlebih dahulu' })
+      return
     }
-    setSendingTest(false)
+
+    setSendingTest(true)
+    try {
+      const result = await sendWhatsAppMessage(testTarget, testMsg, currentDevice)
+      if (result.ok) {
+        addToast({ type: 'wa', title: '✅ Pesan Terkirim', body: `Ke ${testTarget}` })
+        
+        // Save to DB so it appears in Inbox
+        const restaurantId = userProfile?.restaurant_id || null
+        const chatId = testTarget.includes('@') ? testTarget : `${testTarget.replace(/\D/g,'')}@s.whatsapp.net`
+        
+        const { error: dbErr } = await supabase.from('wa_messages').insert({
+          chat_id: chatId,
+          sender_id: 'me',
+          sender_name: session.user.email?.split('@')[0] || 'Me',
+          content: testMsg.trim(),
+          direction: 'outbound',
+          msg_type: 'text',
+          device_id: currentDevice,
+          restaurant_id: restaurantId,
+          is_read: true,
+        })
+        
+        if (dbErr) console.error('Error saving test msg to DB:', dbErr)
+        
+        setTestMsg('')
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (e) {
+      addToast({ type: 'error', title: '❌ Gagal', body: e.message })
+    } finally {
+      setSendingTest(false)
+    }
   }
 
   return (

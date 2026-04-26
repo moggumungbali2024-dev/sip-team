@@ -9,6 +9,7 @@ const basicAuthToken = btoa(`${GOWA_USER}:${GOWA_PASS}`)
 function gowaHeaders() {
   return {
     'Content-Type': 'application/json',
+    'Authorization': `Basic ${basicAuthToken}`
   }
 }
 
@@ -25,11 +26,14 @@ async function gowaFetch(path, options = {}, deviceId = null) {
       ...options,
       headers: gowaHeaders(),
     })
-    if (!res.ok) throw new Error(`GoWa ${res.status}`)
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}))
+      throw new Error(errorData.message || `GoWa ${res.status}`)
+    }
     return await res.json()
   } catch (e) {
     console.error(`GoWa error [${path}]:`, e.message)
-    return null
+    throw e // Re-throw so callers can handle it
   }
 }
 
@@ -50,8 +54,12 @@ export async function addGoWaDevice(deviceId) {
 }
 
 export async function getGoWaQR(deviceId) {
-  // Try to create device first to ensure it exists (ignore error if already exists)
-  await addGoWaDevice(deviceId)
+  // Try to create device first to ensure it exists (ignore error if already exists or fails)
+  try {
+    await addGoWaDevice(deviceId)
+  } catch (e) {
+    console.warn('Device creation skipped or failed:', e.message)
+  }
   return gowaFetch('/app/login', {}, deviceId)
 }
 
