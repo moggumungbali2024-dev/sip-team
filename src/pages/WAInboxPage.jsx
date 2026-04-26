@@ -152,10 +152,13 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
         })
       }
 
-      if (toUpsert.length > 0) {
+      // Deduplicate toUpsert array by ID to prevent ON CONFLICT DO UPDATE error
+      const uniqueUpserts = Array.from(new Map(toUpsert.map(item => [item.id, item])).values())
+
+      if (uniqueUpserts.length > 0) {
         const { error } = await supabase
           .from('wa_contacts')
-          .upsert(toUpsert, { onConflict: 'id', ignoreDuplicates: false })
+          .upsert(uniqueUpserts, { onConflict: 'id', ignoreDuplicates: false })
         if (error) throw error
       }
 
