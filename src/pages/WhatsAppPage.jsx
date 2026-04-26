@@ -10,8 +10,22 @@ export default function WhatsAppPage({ session, userProfile, addToast }) {
   const [testMsg, setTestMsg] = useState('')
   const [testTarget, setTestTarget] = useState('')
   const [sendingTest, setSendingTest] = useState(false)
+  const [timeLeft, setTimeLeft] = useState(0)
+  const [showQrModal, setShowQrModal] = useState(false)
 
   useEffect(() => { fetchDevices() }, [])
+
+  useEffect(() => {
+    let timer
+    if (showQrModal && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft(prev => prev - 1)
+      }, 1000)
+    } else if (timeLeft === 0) {
+      setShowQrModal(false)
+    }
+    return () => clearInterval(timer)
+  }, [showQrModal, timeLeft])
 
   const fetchDevices = async () => {
     const savedPhone = localStorage.getItem('gowa_phone')
@@ -40,6 +54,12 @@ export default function WhatsAppPage({ session, userProfile, addToast }) {
     const data = await getGoWaQR(cleanPhone)
     setQrData(data)
     setQrLoading(false)
+
+    if (data?.results?.qr_link || data?.results?.qr) {
+      const duration = data?.results?.qr_duration || 30
+      setTimeLeft(duration)
+      setShowQrModal(true)
+    }
   }
 
   const handleLogout = async () => {
@@ -205,6 +225,66 @@ export default function WhatsAppPage({ session, userProfile, addToast }) {
           </div>
         </div>
       </div>
+      </div>
+
+      {/* QR MODAL */}
+      {showQrModal && qrData && (
+        <div className="modal-overlay" onClick={() => setShowQrModal(false)}>
+          <div className="modal-card qr-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowQrModal(false)}>&times;</button>
+            
+            <div className="qr-modal-header">
+              <div className="qr-modal-icon">📲</div>
+              <h2 style={{ fontSize: 20, fontWeight: 800 }}>Scan QR Code</h2>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Hubungkan WhatsApp Anda ke sipOS Team</p>
+            </div>
+
+            <div className="qr-modal-body">
+              <div className="qr-display-container">
+                <img 
+                  src={qrData.results?.qr_link || (qrData.results?.qr ? `data:image/png;base64,${qrData.results.qr}` : '')} 
+                  alt="WhatsApp QR"
+                  className="qr-image"
+                />
+                
+                {/* Timer Ring */}
+                <div className="qr-timer-ring">
+                  <svg viewBox="0 0 36 36" className="circular-chart">
+                    <path className="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="circle" strokeDasharray={`${(timeLeft / (qrData.results?.qr_duration || 30)) * 100}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  </svg>
+                  <div className="timer-text">{timeLeft}s</div>
+                </div>
+              </div>
+              
+              <div className="qr-instructions">
+                <div className="step">
+                  <div className="step-num">1</div>
+                  <div className="step-text">Buka WhatsApp di ponsel Anda</div>
+                </div>
+                <div className="step">
+                  <div className="step-num">2</div>
+                  <div className="step-text">Ketuk <b>Menu</b> atau <b>Setelan</b> dan pilih <b>Perangkat Tertaut</b></div>
+                </div>
+                <div className="step">
+                  <div className="step-num">3</div>
+                  <div className="step-text">Ketuk <b>Tautkan Perangkat</b></div>
+                </div>
+                <div className="step">
+                  <div className="step-num">4</div>
+                  <div className="step-text">Arahkan ponsel Anda ke layar ini untuk memindai kode</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="qr-modal-footer">
+              <div className="alert alert-info" style={{ margin: 0, padding: '10px 14px', fontSize: 12 }}>
+                ℹ️ Kode QR ini akan diperbarui secara otomatis setelah waktu habis.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
