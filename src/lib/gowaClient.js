@@ -10,9 +10,6 @@ function gowaHeaders(deviceId) {
   const h = {
     'Content-Type': 'application/json',
   }
-  if (GOWA_USER && GOWA_PASS) {
-    h['Authorization'] = `Basic ${basicAuthToken}`
-  }
   if (deviceId) h['X-Device-Id'] = deviceId
   return h
 }
