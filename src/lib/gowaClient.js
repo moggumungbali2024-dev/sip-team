@@ -8,8 +8,10 @@ const basicAuthToken = btoa(`${GOWA_USER}:${GOWA_PASS}`)
 // Build headers for GoWa v8 (device_id scoping)
 function gowaHeaders(deviceId) {
   const h = {
-    'Authorization': `Basic ${basicAuthToken}`,
     'Content-Type': 'application/json',
+  }
+  if (GOWA_USER && GOWA_PASS) {
+    h['Authorization'] = `Basic ${basicAuthToken}`
   }
   if (deviceId) h['X-Device-Id'] = deviceId
   return h
