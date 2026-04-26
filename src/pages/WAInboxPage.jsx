@@ -68,11 +68,9 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
 
   // ── Data Fetching ────────────────────────────────────────────
   const detectDevice = async () => {
-    const data = await getGoWaDevices()
-    if (data) {
-      // GoWa v8: response might be { results: [{phone}] } or { phone }
-      const phone = data?.results?.[0]?.phone || data?.phone || data?.id
-      if (phone) setDeviceId(phone)
+    const savedPhone = localStorage.getItem('gowa_phone')
+    if (savedPhone) {
+      setDeviceId(savedPhone)
     }
   }
 
@@ -232,10 +230,40 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
           <div className="page-subtitle">
             {deviceId
               ? `Terhubung: ${displayPhone(deviceId)} · ${chats.length} chat`
-              : 'Belum ada perangkat terhubung — hubungkan di halaman WhatsApp'}
+              : 'Belum ada perangkat terhubung. Masukkan nomor HP (628...) di bawah.'}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {!deviceId && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input 
+                className="input" 
+                placeholder="Nomor WA (628...)" 
+                id="waPhoneInput"
+                style={{ width: 150, padding: '6px 12px', fontSize: 13 }}
+              />
+              <button 
+                className="btn btn-primary" 
+                onClick={() => {
+                  const val = document.getElementById('waPhoneInput').value
+                  if(val) {
+                    localStorage.setItem('gowa_phone', val)
+                    setDeviceId(val)
+                  }
+                }}
+              >Set Nomor</button>
+            </div>
+          )}
+          {deviceId && (
+            <button 
+              className="btn btn-ghost" 
+              onClick={() => {
+                localStorage.removeItem('gowa_phone')
+                setDeviceId(null)
+              }}
+              style={{ fontSize: 12, color: 'var(--text-muted)' }}
+            >Ganti Nomor</button>
+          )}
           <button className="btn btn-ghost" onClick={loadChats}>🔄</button>
           <button className="btn btn-primary" onClick={handleSync} disabled={syncing || !deviceId}>
             {syncing ? '⏳ Sinkronisasi...' : '📥 Sync Kontak & Grup'}
