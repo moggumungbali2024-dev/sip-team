@@ -26,19 +26,30 @@ export default function WhatsAppPage({ session, userProfile, addToast }) {
   }
 
   const handleGetQR = async () => {
-    if (!phone.trim()) { addToast({ type: 'error', title: 'Isi nomor HP', body: 'Masukkan nomor HP yang akan dipasangkan.' }); return }
+    const cleanPhone = phone.replace(/\D/g, '').trim()
+    if (!cleanPhone) { 
+      addToast({ type: 'error', title: 'Isi nomor HP', body: 'Masukkan nomor HP yang akan dipasangkan.' }); 
+      return 
+    }
     setQrLoading(true)
     setQrData(null)
-    const data = await getGoWaQR(phone)
+    
+    // Save to localStorage so WA Inbox page can find it
+    localStorage.setItem('gowa_phone', cleanPhone)
+    
+    const data = await getGoWaQR(cleanPhone)
     setQrData(data)
     setQrLoading(false)
   }
 
   const handleLogout = async () => {
-    if (!phone.trim()) return
-    if (!confirm(`Logout nomor ${phone} dari GoWa?`)) return
-    const data = await logoutGoWa(phone)
-    addToast({ type: 'task', title: 'Logged Out', body: `Nomor ${phone} berhasil diputus dari GoWa.` })
+    const cleanPhone = phone.replace(/\D/g, '').trim()
+    if (!cleanPhone) return
+    if (!confirm(`Logout nomor ${cleanPhone} dari GoWa?`)) return
+    
+    await logoutGoWa(cleanPhone)
+    localStorage.removeItem('gowa_phone')
+    addToast({ type: 'success', title: 'Logged Out', body: `Nomor ${cleanPhone} berhasil diputus dari GoWa.` })
     fetchDevices()
   }
 

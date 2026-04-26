@@ -40,7 +40,18 @@ export async function getGoWaDevices(deviceId) {
   return gowaFetch('/user/info', {}, deviceId)
 }
 
+export async function addGoWaDevice(deviceId) {
+  if (!deviceId) return null
+  // In v8, devices are managed via /devices endpoint
+  return gowaFetch('/devices', {
+    method: 'POST',
+    body: JSON.stringify({ device_id: deviceId })
+  })
+}
+
 export async function getGoWaQR(deviceId) {
+  // Try to create device first to ensure it exists (ignore error if already exists)
+  await addGoWaDevice(deviceId)
   return gowaFetch('/app/login', {}, deviceId)
 }
 

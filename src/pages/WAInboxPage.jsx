@@ -70,14 +70,16 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
   const detectDevice = async () => {
     const savedPhone = localStorage.getItem('gowa_phone')
     if (savedPhone) {
-      setDeviceId(savedPhone)
+      setDeviceId(savedPhone.replace(/\D/g, ''))
     }
   }
 
   const loadChats = async () => {
+    if (!deviceId) return
     let q = supabase
       .from('wa_contacts')
       .select('*')
+      .eq('device_id', deviceId)
       .order('last_msg_at', { ascending: false, nullsFirst: false })
     if (restaurantId) q = q.eq('restaurant_id', restaurantId)
     const { data } = await q
@@ -346,7 +348,7 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
                       <div style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                        {chat.last_message || (chat.is_group ? 'Grup WhatsApp' : chat.phone || '')}
+                        {chat.last_message || (chat.is_group ? 'Grup WhatsApp' : displayPhone(chat.phone) || '')}
                       </div>
                       {chat.unread_count > 0 && (
                         <span style={{
@@ -393,7 +395,7 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                       {activeChat.is_group
                         ? `Grup · ${activeChat.group_desc || 'WhatsApp Group'}`
-                        : `📱 ${activeChat.phone || displayPhone(activeChat.id)}`}
+                        : `📱 ${displayPhone(activeChat.phone) || displayPhone(activeChat.id)}`}
                     </div>
                   </div>
                 </div>
