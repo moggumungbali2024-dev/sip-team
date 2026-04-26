@@ -14,8 +14,13 @@ export default function WhatsAppPage({ session, userProfile, addToast }) {
   useEffect(() => { fetchDevices() }, [])
 
   const fetchDevices = async () => {
+    const savedPhone = localStorage.getItem('gowa_phone')
+    if (!savedPhone) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
-    const data = await getGoWaDevices()
+    const data = await getGoWaDevices(savedPhone)
     setDevices(data)
     setLoading(false)
   }
@@ -68,9 +73,13 @@ export default function WhatsAppPage({ session, userProfile, addToast }) {
               <h3 style={{ fontWeight: 700, marginBottom: 16 }}>📱 Status Perangkat GoWa</h3>
               {loading ? (
                 <div className="empty-state"><div className="empty-state-text">Memuat status...</div></div>
+              ) : !localStorage.getItem('gowa_phone') ? (
+                <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: 14, fontSize: 13, color: '#f87171' }}>
+                  ❌ Belum ada nomor yang di-set. Silahkan set nomor di halaman WA Inbox terlebih dahulu.
+                </div>
               ) : !devices ? (
                 <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: 14, fontSize: 13, color: '#f87171' }}>
-                  ❌ Tidak dapat terhubung ke GoWa API. Pastikan server GoWa berjalan di wap.sip-os.com
+                  ❌ Nomor {localStorage.getItem('gowa_phone')} tidak terhubung ke GoWa API. Coba scan QR code ulang.
                 </div>
               ) : (
                 <div>

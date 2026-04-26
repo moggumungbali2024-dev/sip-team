@@ -30,8 +30,9 @@ async function gowaFetch(path, options = {}, deviceId = null) {
 
 // ── Device ──────────────────────────────────────────────────
 
-export async function getGoWaDevices() {
-  return gowaFetch('/user/info')
+export async function getGoWaDevices(deviceId) {
+  if (!deviceId) return null
+  return gowaFetch('/user/info', {}, deviceId)
 }
 
 export async function getGoWaQR(deviceId) {
