@@ -9,7 +9,7 @@ const basicAuthToken = btoa(`${GOWA_USER}:${GOWA_PASS}`)
 function gowaHeaders() {
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Basic ${basicAuthToken}`
+    // Authorization header removed to avoid CORS preflight block
   }
 }
 
@@ -18,9 +18,14 @@ async function gowaFetch(path, options = {}, deviceId = null) {
     // Append device_id parameter if deviceId is provided (avoids X-Device-Id CORS issue)
     let urlPath = path
     if (deviceId) {
-      const sep = path.includes('?') ? '&' : '?'
+      const sep = urlPath.includes('?') ? '&' : '?'
       urlPath += `${sep}device_id=${encodeURIComponent(deviceId)}`
     }
+
+    // Append Auth as query params to avoid CORS header issues
+    const authSep = urlPath.includes('?') ? '&' : '?'
+    urlPath += `${authSep}user=${encodeURIComponent(GOWA_USER)}&pass=${encodeURIComponent(GOWA_PASS)}`
+
     
     const res = await fetch(`${GOWA_URL}${urlPath}`, {
       ...options,
@@ -72,7 +77,14 @@ export async function logoutGoWa(deviceId) {
 export async function sendWhatsAppMessage(phone, message, deviceId = null) {
   try {
     let urlPath = '/send/message'
-    if (deviceId) urlPath += `?device_id=${encodeURIComponent(deviceId)}`
+    
+    // Auth + Device ID in query
+    const params = new URLSearchParams()
+    params.append('user', GOWA_USER)
+    params.append('pass', GOWA_PASS)
+    if (deviceId) params.append('device_id', deviceId)
+    urlPath += `?${params.toString()}`
+
     
     const res = await fetch(`${GOWA_URL}${urlPath}`, {
       method: 'POST',
