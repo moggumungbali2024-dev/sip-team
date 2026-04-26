@@ -29,10 +29,10 @@ export default function Sidebar({ page, onNav, onLogout, session, userProfile, t
     <>
       {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-        <div className="sidebar-header">
-        <div className="logo-icon">⚡</div>
-        <div className="logo-text">sip<span>OS</span> Team</div>
-      </div>
+        <div className="sidebar-header sidebar-logo">
+          <img src="/favicon.svg" alt="logo" className="logo-icon" style={{ width: 32, height: 32, borderRadius: 8 }} />
+          <div className="logo-text" style={{ fontWeight: 800, fontSize: 16 }}>sip<span>OS</span> Team</div>
+        </div>
 
       {/* User Info */}
       <div className="sidebar-user">

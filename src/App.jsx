@@ -139,6 +139,7 @@ export default function App() {
           <span className="hamburger-line" />
           <span className="hamburger-line" />
         </button>
+        <img src="/favicon.svg" alt="logo" className="logo-icon" style={{ width: 28, height: 28, borderRadius: 6, marginRight: 8 }} />
         <div className="mobile-logo">sip<span>OS</span> Team</div>
         {(taskBadge + chatBadge + waBadge) > 0 && (
           <div className="mobile-badge-dot" />

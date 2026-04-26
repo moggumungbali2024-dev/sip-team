@@ -41,17 +41,11 @@ export async function getGoWaDevices(deviceId) {
 }
 
 export async function getGoWaQR(deviceId) {
-  return gowaFetch('/user/login', {
-    method: 'POST',
-    body: JSON.stringify({ phone: deviceId }),
-  })
+  return gowaFetch('/app/login', {}, deviceId)
 }
 
 export async function logoutGoWa(deviceId) {
-  return gowaFetch('/user/logout', {
-    method: 'POST',
-    body: JSON.stringify({ phone: deviceId }),
-  })
+  return gowaFetch('/app/logout', { method: 'POST' }, deviceId)
 }
 
 // ── Messaging ────────────────────────────────────────────────
@@ -59,7 +53,7 @@ export async function logoutGoWa(deviceId) {
 export async function sendWhatsAppMessage(phone, message, deviceId = null) {
   try {
     let urlPath = '/send/message'
-    if (deviceId) urlPath += `?phone_sender=${encodeURIComponent(deviceId)}`
+    if (deviceId) urlPath += `?phone=${encodeURIComponent(deviceId)}`
     
     const res = await fetch(`${GOWA_URL}${urlPath}`, {
       method: 'POST',
@@ -78,13 +72,13 @@ export async function sendWhatsAppMessage(phone, message, deviceId = null) {
 // ── Contacts ─────────────────────────────────────────────────
 
 export async function getGoWaContacts(deviceId = null) {
-  return gowaFetch('/contact/list', {}, deviceId)
+  return gowaFetch('/user/my/contacts', {}, deviceId)
 }
 
 // ── Groups ───────────────────────────────────────────────────
 
 export async function getGoWaGroups(deviceId = null) {
-  return gowaFetch('/group/list', {}, deviceId)
+  return gowaFetch('/user/my/groups', {}, deviceId)
 }
 
 export async function getGoWaGroupInfo(groupId, deviceId = null) {
