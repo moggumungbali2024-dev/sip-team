@@ -1,6 +1,24 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { edgeNotifyTask, edgeSendNotif } from '../lib/edgeClient'
+import {
+  DndContext,
+  closestCorners,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  defaultDropAnimationSideEffects,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 const STATUS_COLS = [
   { id: 'todo',        label: 'Belum Mulai', color: '#6366f1' },
@@ -20,7 +38,19 @@ export default function TasksPage({ session, userProfile, addToast }) {
   const [editingTask, setEditingTask] = useState(null)
   const [viewMode, setViewMode] = useState('kanban') // kanban | list
   const [filterStatus, setFilterStatus] = useState('all')
+  const [activeId, setActiveId] = useState(null)
   const [form, setForm] = useState({ title: '', description: '', priority: 'medium', status: 'todo', assigned_to: '', due_date: '' })
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   useEffect(() => { fetchData() }, [])
 
@@ -114,14 +144,89 @@ export default function TasksPage({ session, userProfile, addToast }) {
     fetchData()
   }
 
-  const handleQuickStatus = async (taskId, newStatus) => {
-    await supabase.from('team_tasks').update({ status: newStatus }).eq('id', taskId)
-    if (newStatus === 'done') {
-      try {
-        await edgeSendNotif('✅ Tugas Selesai', 'Sebuah tugas telah diselesaikan!', 5, userProfile?.restaurant_id)
-      } catch (e) { console.warn('Edge notif failed:', e.message) }
     }
-    fetchData()
+  }
+
+  const handleQuickStatus = async (taskId, newStatus) => {
+    const { error } = await supabase.from('team_tasks').update({ status: newStatus }).eq('id', taskId)
+    if (error) {
+      addToast({ type: 'error', title: 'Update Gagal', body: error.message })
+    } else {
+      if (newStatus === 'done') {
+        try {
+          await edgeSendNotif('✅ Tugas Selesai', 'Sebuah tugas telah diselesaikan!', 5, userProfile?.restaurant_id)
+        } catch (e) { console.warn('Edge notif failed:', e.message) }
+      }
+      fetchData()
+    }
+  }
+
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id)
+  }
+
+  const handleDragOver = (event) => {
+    const { active, over } = event
+    if (!over) return
+
+    const activeTask = tasks.find(t => t.id === active.id)
+    const overId = over.id
+
+    // If dropping over a column container
+    const isOverAColumn = STATUS_COLS.some(col => col.id === overId)
+    
+    let newStatus = null
+    if (isOverAColumn) {
+      newStatus = overId
+    } else {
+      const overTask = tasks.find(t => t.id === overId)
+      if (overTask && overTask.status !== activeTask.status) {
+        newStatus = overTask.status
+      }
+    }
+
+    if (newStatus && activeTask.status !== newStatus) {
+      setTasks(prev => prev.map(t => t.id === active.id ? { ...t, status: newStatus } : t))
+    }
+  }
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event
+    setActiveId(null)
+    if (!over) return
+
+    const activeTask = tasks.find(t => t.id === active.id)
+    const overId = over.id
+    
+    // Determine new status
+    let newStatus = activeTask.status
+    const isOverAColumn = STATUS_COLS.some(col => col.id === overId)
+    if (isOverAColumn) {
+      newStatus = overId
+    } else {
+      const overTask = tasks.find(t => t.id === overId)
+      if (overTask) newStatus = overTask.status
+    }
+
+    // Update in DB if status changed
+    if (newStatus !== activeTask.status || active.id !== over.id) {
+      // Re-order if needed, for now just update status
+      const { error } = await supabase
+        .from('team_tasks')
+        .update({ status: newStatus })
+        .eq('id', active.id)
+      
+      if (error) {
+        addToast({ type: 'error', title: 'Update Gagal', body: error.message })
+        fetchData() // Rollback
+      } else {
+        if (newStatus === 'done' && activeTask.status !== 'done') {
+          try {
+            await edgeSendNotif('✅ Tugas Selesai', `${activeTask.title} telah diselesaikan!`, 5, userProfile?.restaurant_id)
+          } catch (e) { console.warn('Edge notif failed:', e.message) }
+        }
+      }
+    }
   }
 
   const STATUS_COLOR = { todo: '#6366f1', in_progress: '#f97316', done: '#10b981', cancelled: '#6b7280' }
@@ -164,42 +269,36 @@ export default function TasksPage({ session, userProfile, addToast }) {
           <div className="empty-state"><div className="empty-state-icon">⏳</div><div className="empty-state-text">Memuat tugas...</div></div>
         ) : viewMode === 'kanban' ? (
           /* Kanban Board */
-          <div className="kanban-board">
-            {STATUS_COLS.map(col => (
-              <div key={col.id} className="kanban-col">
-                <div className="kanban-col-header">
-                  <span className="kanban-col-title" style={{ color: col.color }}>{col.label}</span>
-                  <span className="kanban-count">{tasksByStatus(col.id).length}</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {tasksByStatus(col.id).length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 13 }}>Kosong</div>
-                  ) : tasksByStatus(col.id).map(task => {
-                    const assignedMember = members.find(m => m.id === task.assigned_to)
-                    return (
-                      <div key={task.id} className="task-card" onClick={() => openEdit(task)} style={{ display: 'flex', gap: 10 }}>
-                        <div className={`task-priority-bar priority-${task.priority}`} style={{ width: 3, borderRadius: 2, alignSelf: 'stretch', flexShrink: 0 }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13 }}>{task.title}</div>
-                          {task.description && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>{task.description.slice(0, 50)}{task.description.length > 50 ? '...' : ''}</div>}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                            <span className="badge" style={{ fontSize: 10, background: `${PRIORITY_COLOR[task.priority]}22`, color: PRIORITY_COLOR[task.priority] }}>{task.priority}</span>
-                            {assignedMember && (
-                              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'linear-gradient(135deg, #f97316, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
-                                {assignedMember.username?.slice(0, 2).toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-                          {task.due_date && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>📅 {new Date(task.due_date).toLocaleDateString('id-ID')}</div>}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                <button className="btn btn-ghost btn-sm" style={{ width: '100%', marginTop: 8, borderStyle: 'dashed' }} onClick={openCreate}>+ Tambah</button>
-              </div>
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="kanban-board">
+              {STATUS_COLS.map(col => (
+                <KanbanColumn 
+                  key={col.id} 
+                  col={col} 
+                  tasks={tasksByStatus(col.id)} 
+                  members={members}
+                  openEdit={openEdit}
+                  openCreate={openCreate}
+                />
+              ))}
+            </div>
+
+            <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
+              {activeId ? (
+                <TaskCard 
+                  task={tasks.find(t => t.id === activeId)} 
+                  members={members} 
+                  isOverlay 
+                />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         ) : (
           /* List View */
           <div className="card" style={{ overflowX: 'auto' }}>
@@ -304,6 +403,97 @@ export default function TasksPage({ session, userProfile, addToast }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Sub-components for DND ────────────────────────────────────
+
+function KanbanColumn({ col, tasks, members, openEdit, openCreate }) {
+  const { setNodeRef } = useSortable({
+    id: col.id,
+    data: {
+      type: 'column',
+      column: col,
+    },
+  })
+
+  return (
+    <div ref={setNodeRef} className="kanban-col">
+      <div className="kanban-col-header">
+        <span className="kanban-col-title" style={{ color: col.color }}>{col.label}</span>
+        <span className="kanban-count">{tasks.length}</span>
+      </div>
+      <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minHeight: 100 }}>
+          {tasks.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 13 }}>Kosong</div>
+          ) : tasks.map(task => (
+            <TaskCard 
+              key={task.id} 
+              task={task} 
+              members={members} 
+              onClick={() => openEdit(task)} 
+            />
+          ))}
+        </div>
+      </SortableContext>
+      <button className="btn btn-ghost btn-sm" style={{ width: '100%', marginTop: 12, borderStyle: 'dashed' }} onClick={openCreate}>+ Tambah</button>
+    </div>
+  )
+}
+
+function TaskCard({ task, members, onClick, isOverlay }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ 
+    id: task.id,
+    disabled: isOverlay
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
+    cursor: isOverlay ? 'grabbing' : 'grab',
+  }
+
+  const PRIORITY_COLOR = { high: '#ef4444', medium: '#f97316', low: '#6366f1' }
+  const assignedMember = members.find(m => m.id === task.assigned_to)
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes} 
+      {...listeners}
+      className={`task-card ${isOverlay ? 'overlay' : ''}`}
+      onClick={(e) => {
+        // Only trigger click if not dragging
+        if (!isDragging && onClick) onClick()
+      }}
+    >
+      <div style={{ display: 'flex', gap: 10 }}>
+        <div className={`task-priority-bar priority-${task.priority}`} style={{ width: 3, borderRadius: 2, alignSelf: 'stretch', flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600, fontSize: 13 }}>{task.title}</div>
+          {task.description && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>{task.description.slice(0, 50)}{task.description.length > 50 ? '...' : ''}</div>}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+            <span className="badge" style={{ fontSize: 10, background: `${PRIORITY_COLOR[task.priority]}22`, color: PRIORITY_COLOR[task.priority] }}>{task.priority}</span>
+            {assignedMember && (
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'linear-gradient(135deg, #f97316, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>
+                {assignedMember.username?.slice(0, 2).toUpperCase()}
+              </div>
+            )}
+          </div>
+          {task.due_date && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>📅 {new Date(task.due_date).toLocaleDateString('id-ID')}</div>}
+        </div>
+      </div>
     </div>
   )
 }
