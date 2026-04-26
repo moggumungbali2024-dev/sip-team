@@ -1,18 +1,42 @@
-# React + Vite
+# sipOS Team
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Real-time Team Management** — React + Vite + Supabase + Gotify + GoWa
 
-Currently, two official plugins are available:
+## Stack
+- **Frontend**: React 19 + Vite
+- **Backend**: Supabase (PostgreSQL + Auth + Realtime)
+- **Push Notif**: Gotify WebSocket
+- **WhatsApp**: GoWa Gateway
+- **Edge Functions**: service.sip-os.com
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Pages
+| Route | Deskripsi |
+|-------|-----------|
+| `/` | Dashboard — statistik & task summary |
+| `tasks` | Kanban + List view manajemen tugas |
+| `team` | Direktori anggota tim + kirim WA |
+| `chat` | Chat internal real-time per task |
+| `whatsapp` | Kelola perangkat GoWa & test kirim |
 
-## React Compiler
+## Deploy
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Built & deployed via **Coolify** with Docker (multi-stage):
+- `node:20-alpine` → `npm run build`
+- `nginx:alpine` → serve `/dist` on port 80
 
-## Expanding the ESLint configuration
+### Env Variables (set in Coolify)
+```env
+VITE_SUPABASE_URL=https://db.sip-os.com
+VITE_SUPABASE_ANON_KEY=...
+VITE_EDGE_URL=https://service.sip-os.com
+VITE_GOTIFY_URL=https://ok.sip-os.com
+VITE_GOTIFY_TOKEN=...
+VITE_GOWA_URL=https://wap.sip-os.com
+VITE_GOWA_USER=...
+VITE_GOWA_PASS=...
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-# sip-landing
-# sip-team
+## Supabase Tables Required
+- `users` — id, username, role, phone, restaurant_id
+- `team_tasks` — id, title, description, priority, status, assigned_to, due_date, restaurant_id, created_by
+- `team_messages` — id, content, source, sender_id, task_id, restaurant_id, created_at
