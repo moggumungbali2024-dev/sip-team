@@ -45,7 +45,7 @@ export async function getGoWaQR(deviceId) {
 }
 
 export async function logoutGoWa(deviceId) {
-  return gowaFetch('/app/logout', { method: 'POST' }, deviceId)
+  return gowaFetch('/app/logout', { method: 'GET' }, deviceId)
 }
 
 // ── Messaging ────────────────────────────────────────────────

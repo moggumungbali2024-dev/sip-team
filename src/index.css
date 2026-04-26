@@ -648,14 +648,27 @@ textarea.input { resize: vertical; min-height: 80px; }
     grid-template-columns: 1fr;
     height: calc(100vh - 160px); /* adjust for topbar and bottom nav */
   }
-  .wa-chat-list {
+  .wa-inbox-layout.chat-active .wa-chat-list {
     display: none; /* Hide chat list when message panel is open */
+  }
+  .wa-inbox-layout:not(.chat-active) .wa-msg-panel {
+    display: none; /* Hide message panel when chat list is open */
+  }
+  .mobile-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    padding: 8px;
+    margin-left: -8px;
   }
 }
 
 /* Hide mobile elements on desktop */
 @media (min-width: 769px) {
-  .mobile-bottom-nav, .mobile-topbar, .sidebar-overlay {
+  .mobile-bottom-nav, .mobile-topbar, .sidebar-overlay, .mobile-back-btn {
     display: none !important;
   }
 }

@@ -277,7 +277,7 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
       </div>
 
       <div className="page-body">
-        <div className="wa-inbox-layout">
+        <div className={`wa-inbox-layout ${activeChat ? 'chat-active' : ''}`}>
           {/* ── Sidebar Chat List ── */}
           <div className="wa-chat-list">
             {/* Search */}
@@ -376,6 +376,9 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
                   display: 'flex', alignItems: 'center', gap: 12,
                   background: 'rgba(255,255,255,0.02)'
                 }}>
+                  <button className="mobile-back-btn" onClick={() => setActiveChat(null)}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
                   <div className={`wa-avatar ${activeChat.is_group ? 'wa-avatar-group' : ''}`} style={{ width: 38, height: 38, fontSize: 14 }}>
                     {activeChat.is_group ? '👥' : getInitials(activeChat.name)}
                   </div>
