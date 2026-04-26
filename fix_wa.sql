@@ -1,5 +1,4 @@
 ALTER TABLE public.wa_contacts
-ADD COLUMN IF NOT EXISTS last_msg_at TIMESTAMPTZ,
-ADD COLUMN IF NOT EXISTS last_message TEXT,
-ADD COLUMN IF NOT EXISTS unread_count INTEGER DEFAULT 0;
+ADD COLUMN IF NOT EXISTS device_id TEXT,
+ADD COLUMN IF NOT EXISTS restaurant_id UUID;
 NOTIFY pgrst, 'reload schema';

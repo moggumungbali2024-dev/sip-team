@@ -235,7 +235,7 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          {!deviceId && (
+          {!deviceId ? (
             <div style={{ display: 'flex', gap: 8 }}>
               <input 
                 className="input" 
@@ -254,21 +254,22 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
                 }}
               >Set Nomor</button>
             </div>
+          ) : (
+            <>
+              <button 
+                className="btn btn-ghost" 
+                onClick={() => {
+                  localStorage.removeItem('gowa_phone')
+                  setDeviceId(null)
+                }}
+                style={{ fontSize: 12, color: 'var(--text-muted)' }}
+              >Ganti Nomor</button>
+              <button className="btn btn-ghost" onClick={loadChats}>🔄</button>
+              <button className="btn btn-primary" onClick={handleSync} disabled={syncing}>
+                {syncing ? '⏳ Sinkronisasi...' : '📥 Sync Kontak & Grup'}
+              </button>
+            </>
           )}
-          {deviceId && (
-            <button 
-              className="btn btn-ghost" 
-              onClick={() => {
-                localStorage.removeItem('gowa_phone')
-                setDeviceId(null)
-              }}
-              style={{ fontSize: 12, color: 'var(--text-muted)' }}
-            >Ganti Nomor</button>
-          )}
-          <button className="btn btn-ghost" onClick={loadChats}>🔄</button>
-          <button className="btn btn-primary" onClick={handleSync} disabled={syncing || !deviceId}>
-            {syncing ? '⏳ Sinkronisasi...' : '📥 Sync Kontak & Grup'}
-          </button>
         </div>
       </div>
 
