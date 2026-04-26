@@ -84,8 +84,31 @@ export default function WhatsAppPage({ session, userProfile, addToast }) {
               ) : (
                 <div>
                   <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-                    <div style={{ fontSize: 13, color: '#34d399', fontWeight: 600 }}>✅ GoWa API Terhubung</div>
-                    <pre style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 8, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(devices, null, 2)}</pre>
+                    <div style={{ fontSize: 14, color: '#34d399', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                      GoWa API Terhubung
+                    </div>
+                    {(() => {
+                      const devData = devices?.results?.data?.[0] || devices?.data?.[0]
+                      if (!devData) return <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Status: Terkoneksi, namun detail perangkat tidak tersedia.</div>
+                      
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13, color: 'var(--text-primary)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>Nama Profile:</span>
+                            <span style={{ fontWeight: 600 }}>{devData.name || devData.verified_name || 'Tidak ada nama'}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>Perangkat Aktif:</span>
+                            <span style={{ fontWeight: 600 }}>{(devData.devices || []).length} sesi (Web/Desktop)</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>ID Utama:</span>
+                            <span style={{ fontWeight: 600 }}>{devData.id || localStorage.getItem('gowa_phone')}</span>
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
               )}

@@ -262,8 +262,12 @@ export default function WAInboxPage({ session, userProfile, addToast, onWaBadgeC
               <button 
                 className="btn btn-ghost" 
                 onClick={() => {
+                  if(!confirm('Ganti nomor akan menghapus daftar chat dari layar. Lanjutkan?')) return
                   localStorage.removeItem('gowa_phone')
                   setDeviceId(null)
+                  setChats([])
+                  setActiveChat(null)
+                  setMessages([])
                 }}
                 style={{ fontSize: 12, color: 'var(--text-muted)' }}
               >Ganti Nomor</button>

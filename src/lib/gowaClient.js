@@ -14,11 +14,11 @@ function gowaHeaders() {
 
 async function gowaFetch(path, options = {}, deviceId = null) {
   try {
-    // Append phone parameter if deviceId is provided (avoids X-Device-Id CORS issue)
+    // Append device_id parameter if deviceId is provided (avoids X-Device-Id CORS issue)
     let urlPath = path
     if (deviceId) {
       const sep = path.includes('?') ? '&' : '?'
-      urlPath += `${sep}phone=${encodeURIComponent(deviceId)}`
+      urlPath += `${sep}device_id=${encodeURIComponent(deviceId)}`
     }
     
     const res = await fetch(`${GOWA_URL}${urlPath}`, {
@@ -53,7 +53,7 @@ export async function logoutGoWa(deviceId) {
 export async function sendWhatsAppMessage(phone, message, deviceId = null) {
   try {
     let urlPath = '/send/message'
-    if (deviceId) urlPath += `?phone=${encodeURIComponent(deviceId)}`
+    if (deviceId) urlPath += `?device_id=${encodeURIComponent(deviceId)}`
     
     const res = await fetch(`${GOWA_URL}${urlPath}`, {
       method: 'POST',
